@@ -1,0 +1,80 @@
+version: '3.3'
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: MYSQL
+    hostname: mysql_local
+    volumes:
+      - ./.docker/mysql:/var/lib/mysql
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: transfer
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: APP
+    volumes:
+      - ./:/var/www/html
+      - /var/www/html/vendor
+    restart: on-failure
+    ports:
+      - 80:80
+      - 13000:13000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    networks:
+      - app
+    environment:
+      - WAIT_HOSTS=mysql:3306
+      - WAIT_HOSTS_TIMEOUT=300
+      - WAIT_SLEEP_INTERVAL=5
+      - WAIT_HOST_CONNECT_TIMEOUT=10
+  
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: RABBITMQ
+    hostname: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - ./.docker/rabbitmq/data:/var/lib/rabbitmq/
+      - ./.docker/rabbitmq/log:/var/log/rabbitmq
+    restart: always
+    networks:
+      - app
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '0.5GB'
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  app:
+    driver: bridge
