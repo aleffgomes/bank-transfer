@@ -21,8 +21,7 @@ Este projeto é um sistema de transferência de dinheiro entre usuários. Ele ut
 Para obter o código-fonte do projeto, siga estes passos:
 
 ```bash
-git clone https://github.com/seu-usuario/bank-transfer.git
-
+git clone https://github.com/aleffgomes/bank-transfer.git
 cd bank-transfer
 ```
 
