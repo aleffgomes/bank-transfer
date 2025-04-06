@@ -58,48 +58,15 @@ class MoneyEntityTest extends CIUnitTestCase
         $this->assertEquals(925, $diff2->getCents());
     }
     
-    public function testMoneyMultiplication()
-    {
-        $money = new Money(10.50);
-        
-        $product = $money->multiply(2);
-        $this->assertEquals(21.00, $product->getAmount());
-        $this->assertEquals(2100, $product->getCents());
-        
-        $product2 = $money->multiply(0.5);
-        $this->assertEquals(5.25, $product2->getAmount());
-        $this->assertEquals(525, $product2->getCents());
-    }
-    
-    public function testMoneyDivision()
-    {
-        $money = new Money(10.00);
-        
-        $quotient = $money->divide(2);
-        $this->assertEquals(5.00, $quotient->getAmount());
-        $this->assertEquals(500, $quotient->getCents());
-        
-        $quotient2 = $money->divide(3);
-        $this->assertEquals(3.33, $quotient2->getAmount());
-        $this->assertEquals(333, $quotient2->getCents());
-    }
-    
-    public function testMoneyComparison()
+    public function testIsGreaterThanOrEqual()
     {
         $money1 = new Money(100.00);
         $money2 = new Money(50.00);
         $money3 = new Money(100.00);
         
-        $this->assertTrue($money1->isGreaterThan($money2));
         $this->assertTrue($money1->isGreaterThanOrEqual($money2));
         $this->assertTrue($money1->isGreaterThanOrEqual($money3));
-        
-        $this->assertFalse($money1->isLessThan($money2));
-        $this->assertTrue($money2->isLessThan($money1));
-        $this->assertTrue($money2->isLessThanOrEqual($money1));
-        
-        $this->assertTrue($money1->isEqualTo($money3));
-        $this->assertFalse($money1->isEqualTo($money2));
+        $this->assertFalse($money2->isGreaterThanOrEqual($money1));
     }
     
     public function testMoneyFormatting()
@@ -145,13 +112,5 @@ class MoneyEntityTest extends CIUnitTestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         new Money([]);
-    }
-    
-    public function testDivideByZero()
-    {
-        $money = new Money(10.00);
-        
-        $this->expectException(\InvalidArgumentException::class);
-        $money->divide(0);
     }
 } 

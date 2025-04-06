@@ -93,11 +93,6 @@ class TransferService implements TransferServiceInterface
                 ];
             }
 
-            if (!$this->authorizationService->checkAuthorization()) {
-                $this->db->transRollback();
-                return ['error' => 'Transaction not authorized by external service.', 'code' => 403];
-            }
-
             $statusId = $this->transactionStatusModel->getStatusId(self::STATUS_PENDING);
             $transactionId = $this->transactionModel->saveTransaction($payerId, $payeeId, $moneyAmount, $statusId);
 

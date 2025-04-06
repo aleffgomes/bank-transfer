@@ -16,6 +16,18 @@ Este projeto é um sistema de transferência de dinheiro entre usuários. Ele ut
 - Docker
 - Docker Compose
 
+## Clonagem do Repositório
+
+Para obter o código-fonte do projeto, siga estes passos:
+
+```bash
+git clone https://github.com/seu-usuario/bank-transfer.git
+
+cd bank-transfer
+```
+
+Caso você não tenha acesso ao repositório original, você pode fazer um fork antes de clonar.
+
 ## Instalação e Inicialização
 
 Apenas uma comando é necessário para iniciar todo o sistema:
@@ -60,6 +72,8 @@ Corpo da requisição (exemplo):
   "payee": 15
 }
 ```
+
+> **Importante:** Os valores monetários devem ser enviados com ponto decimal (.) para separar os centavos, por exemplo: 100.55 para representar 100 reais e 55 centavos. O formato 100,55 não será aceito pela API.
 
 Consulte a documentação em http://localhost/docs para mais detalhes.
 
@@ -204,19 +218,14 @@ O serviço `NotificationService` encapsula a lógica de envio e gerenciamento da
 
 ## Filtro de Autorização
 
-O filtro de autorização (AuthorizationFilter) é um middleware utilizado para verificar se o usuário possui permissão para acessar determinadas rotas da aplicação. Ele é aplicado antes de a requisição atingir o controlador correspondente.
+O sistema utiliza o filtro `CheckAuth.php` para verificar a autorização de requisições. Este filtro:
 
-### Implementação
+- É implementado como um middleware do CodeIgniter 4
+- Verifica automaticamente se uma transação está autorizada antes de processá-la
+- Utiliza o serviço de autorização configurado no sistema
+- Retorna erro 401 (Unauthorized) se a requisição não for autorizada
 
-O filtro é implementado na classe AuthorizationFilter localizada em App\Filters\AuthorizationFilter.php.
-Utiliza o serviço authorizationService para verificar se o usuário possui autorização.
-Retorna uma resposta não autorizada se a autorização falhar.
-
-### Registro
-
-Registrado no arquivo de configuração app\Config\Filters.php.
-O alias checkauth é associado à classe CheckAuth.
-Configurado para ser executado antes de determinadas rotas protegidas.
+Este filtro é aplicado globalmente a endpoints críticos, simplificando o código dos controladores e centralizando a lógica de autorização.
 
 ## Camada de Serviços (Services)
 
@@ -294,7 +303,40 @@ Criar comandos para serem executados via CLI.
 
 Commands/
 
-- ProcessNotificationQueue.php: É um exemplo de como processar uma fila de notificações mal sucedidas armazenadas no RabbitMQ. Este comando pode ser configurado para ser executado periodicamente, por exemplo, através de um cron job.
+- **ProcessNotificationQueue.php**: Processa a fila de notificações mal sucedidas armazenadas no RabbitMQ. Este comando pode ser configurado para ser executado periodicamente através de um cron job.
+
+  Para executar este comando manualmente:
+  ```bash
+  php spark queue:process --timeout=60
+  ```
+  Onde `timeout` é o tempo máximo em segundos que o processo ficará em execução tentando processar notificações pendentes. O padrão é 30 segundos.
+
+  Este comando é fundamental para garantir que as notificações que falharam durante o processo de transferência sejam eventualmente entregues, melhorando a confiabilidade do sistema.
+
+- **ResetDatabase.php**: Permite resetar o banco de dados completamente, recriando todas as tabelas e aplicando as migrations.
+
+  Para executar este comando:
+  ```bash
+  php spark db:reset
+  ```
+
+  Este comando é útil durante o desenvolvimento ou para reiniciar o ambiente para testes. Ele:
+  1. Remove todas as tabelas existentes
+  2. Recria a estrutura do banco de dados usando as migrations
+  3. Aplica os seeders se configurados
+
+## Sistema de Manipulação de Valores Monetários
+
+### Classe Money
+
+O projeto utiliza a classe `Money.php` para lidar com valores monetários de forma precisa e segura. Esta abordagem resolve problemas comuns ao trabalhar com valores monetários:
+
+- **Evita problemas de precisão com números de ponto flutuante**: Armazena valores em centavos como inteiros para evitar erros de arredondamento.
+- **Garante operações matemáticas precisas**: Adição, subtração, multiplicação e divisão são implementadas com precisão.
+- **Imutabilidade**: Cada operação retorna uma nova instância de Money, evitando efeitos colaterais.
+- **Comparações confiáveis**: Métodos como `isGreaterThan()`, `isEqualTo()` garantem comparações corretas.
+
+Esta classe é essencial para aplicações financeiras, garantindo que os cálculos monetários sejam precisos e confiáveis.
 
 ## Tratamento de Race Conditions
 

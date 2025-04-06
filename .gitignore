@@ -128,3 +128,6 @@ nb-configuration.xml
 # docker
 
 .docker/
+
+supervisord.log
+supervisord.pid

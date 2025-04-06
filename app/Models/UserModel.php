@@ -51,11 +51,9 @@ class UserModel extends Model implements UserModelInterface
      */
     public function getUserById(int $id): ?User
     {
-        $user = $this->select('users.*, user_types.name as type_name')
+        return $this->select('users.*, user_types.type_name')
             ->join('user_types', 'users.user_type_id = user_types.id_user_type')
             ->where('id_user', $id)
             ->first();
-            
-        return $user;
     }
 }

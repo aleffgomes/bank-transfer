@@ -70,12 +70,12 @@ class WalletModel extends Model implements WalletModelInterface
         try {
             $builder = $db->table($this->table);
             
-            $payerWalletData = $builder->where('user_id', $payerId)
-                ->get('*', 0, 1, 'FOR UPDATE')
+            $payerWalletData = $builder->select('*')->where('user_id', $payerId)
+                ->get(1, 0, 'FOR UPDATE')
                 ->getRowArray();
 
-            $payeeWalletData = $builder->where('user_id', $payeeId)
-                ->get('*', 0, 1, 'FOR UPDATE')
+            $payeeWalletData = $builder->select('*')->where('user_id', $payeeId)
+                ->get(1, 0, 'FOR UPDATE')
                 ->getRowArray();
 
             if (!$payerWalletData || !$payeeWalletData) {
@@ -86,7 +86,6 @@ class WalletModel extends Model implements WalletModelInterface
             $payerWallet = new Wallet($payerWalletData);
             $payeeWallet = new Wallet($payeeWalletData);
             
-            // Convert to Money if not already
             $moneyAmount = $amount instanceof Money ? $amount : new Money($amount);
 
             if (!$payerWallet->hasSufficientBalance($moneyAmount)) {
@@ -94,7 +93,6 @@ class WalletModel extends Model implements WalletModelInterface
                 return false;
             }
 
-            // Usando os métodos de Wallet que agora utilizam Money internamente
             $payerWallet->debit($moneyAmount);
             $payeeWallet->credit($moneyAmount);
 

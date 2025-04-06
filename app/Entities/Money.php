@@ -25,13 +25,10 @@ class Money
     public function __construct($amount = 0)
     {
         if (is_int($amount)) {
-            // If it's already an integer, we assume it's in cents
             $this->cents = $amount;
         } elseif (is_float($amount)) {
-            // Convert float to cents
             $this->cents = (int)round($amount * 100);
         } elseif (is_string($amount)) {
-            // Convert string to cents
             $this->cents = (int)round((float)$amount * 100);
         } else {
             throw new \InvalidArgumentException('Amount must be a number or string');
@@ -109,43 +106,6 @@ class Money
     }
     
     /**
-     * Multiplies this Money object by a factor
-     *
-     * @param float|int $factor
-     * @return Money A new Money object with the result
-     */
-    public function multiply($factor): Money
-    {
-        return self::fromCents((int)round($this->cents * $factor));
-    }
-    
-    /**
-     * Divides this Money object by a divisor
-     *
-     * @param float|int $divisor
-     * @return Money A new Money object with the result
-     */
-    public function divide($divisor): Money
-    {
-        if ($divisor == 0) {
-            throw new \InvalidArgumentException('Cannot divide by zero');
-        }
-        return self::fromCents((int)round($this->cents / $divisor));
-    }
-    
-    /**
-     * Checks if this value is greater than another
-     *
-     * @param Money|float|int|string $amount
-     * @return bool
-     */
-    public function isGreaterThan($amount): bool
-    {
-        $amountCents = $amount instanceof Money ? $amount->getCents() : (new Money($amount))->getCents();
-        return $this->cents > $amountCents;
-    }
-    
-    /**
      * Checks if this value is greater than or equal to another
      *
      * @param Money|float|int|string $amount
@@ -155,42 +115,6 @@ class Money
     {
         $amountCents = $amount instanceof Money ? $amount->getCents() : (new Money($amount))->getCents();
         return $this->cents >= $amountCents;
-    }
-    
-    /**
-     * Checks if this value is less than another
-     *
-     * @param Money|float|int|string $amount
-     * @return bool
-     */
-    public function isLessThan($amount): bool
-    {
-        $amountCents = $amount instanceof Money ? $amount->getCents() : (new Money($amount))->getCents();
-        return $this->cents < $amountCents;
-    }
-    
-    /**
-     * Checks if this value is less than or equal to another
-     *
-     * @param Money|float|int|string $amount
-     * @return bool
-     */
-    public function isLessThanOrEqual($amount): bool
-    {
-        $amountCents = $amount instanceof Money ? $amount->getCents() : (new Money($amount))->getCents();
-        return $this->cents <= $amountCents;
-    }
-    
-    /**
-     * Checks if this value is equal to another
-     *
-     * @param Money|float|int|string $amount
-     * @return bool
-     */
-    public function isEqualTo($amount): bool
-    {
-        $amountCents = $amount instanceof Money ? $amount->getCents() : (new Money($amount))->getCents();
-        return $this->cents === $amountCents;
     }
     
     /**

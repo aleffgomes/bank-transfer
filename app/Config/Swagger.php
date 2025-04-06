@@ -1,11 +1,15 @@
 <?php
 
-namespace App\Config;
+namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
 
 class Swagger extends BaseConfig
 {
+    public $url;
+    public $title;
+    public $description;
+    public $version;
     /**
      * Função para inicializar com valores do .env
      */
