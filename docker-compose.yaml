@@ -24,13 +24,20 @@ services:
     command: ["/var/www/html/docker/scripts/notification-processor.sh"]
     volumes:
       - ./:/var/www/html
+      - vendor_data:/var/www/html/vendor
     networks:
       - app
     depends_on:
-      - php-fpm
-      - mysql
-      - rabbitmq
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "php", "spark", "--version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   nginx:
     image: nginx:latest
@@ -89,7 +96,7 @@ services:
           memory: '0.5GB'
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
 

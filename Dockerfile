@@ -33,19 +33,23 @@ COPY docker/php/custom.ini /usr/local/etc/php/conf.d/custom.ini
 
 WORKDIR /var/www/html
 
+# Copiar apenas os arquivos necessários para instalar dependências
 COPY composer.json composer.lock ./
-
-RUN composer install --no-interaction --optimize-autoloader
-
-COPY . .
-
 COPY docker/scripts /var/www/html/docker/scripts
+
+# Dar permissão aos scripts
 RUN chmod +x /var/www/html/docker/scripts/*.sh
 
-RUN chown -R www-data:www-data /var/www/html/writable \
-    && chmod -R 777 /var/www/html/writable 
+# Instalar dependências
+RUN composer install --no-interaction --optimize-autoloader
 
-RUN mkdir -p /var/www/html/writable/logs \
+# Copiar o resto dos arquivos
+COPY . .
+
+# Configurar permissões
+RUN chown -R www-data:www-data /var/www/html/writable \
+    && chmod -R 777 /var/www/html/writable \
+    && mkdir -p /var/www/html/writable/logs \
     && touch /var/www/html/writable/logs/log-$(date +%Y-%m-%d).log \
     && chown -R www-data:www-data /var/www/html/writable/logs
 

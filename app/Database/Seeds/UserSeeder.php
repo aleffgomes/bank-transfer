@@ -20,8 +20,8 @@ class UserSeeder extends BaseSeeder
         $users = [];
         for ($i = 1; $i <= 5; $i++) {
             $users[] = [
-                'name' => $faker->name,
-                'email' => $faker->unique()->safeEmail,
+                'name' => $faker->name(),
+                'email' => $faker->unique()->safeEmail(),
                 'password' => password_hash('password123', PASSWORD_DEFAULT),
                 'cpf_cnpj' => '1234567' . $faker->randomNumber(4, true),
                 'user_type_id' => 1,
@@ -30,8 +30,8 @@ class UserSeeder extends BaseSeeder
 
         for ($i = 1; $i <= 5; $i++) {
             $users[] = [
-                'name' => $faker->company,
-                'email' => $faker->unique()->companyEmail,
+                'name' => $faker->company(),
+                'email' => $faker->unique()->companyEmail(),
                 'password' => password_hash('password123', PASSWORD_DEFAULT),
                 'cpf_cnpj' => '1234567' . $faker->randomNumber(7, true),
                 'user_type_id' => 2, 

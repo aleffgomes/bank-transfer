@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Aguardar MySQL e RabbitMQ estarem prontos
+/var/www/html/docker/scripts/wait-for-db.sh mysql_local root password transfer /bin/true
+/var/www/html/docker/scripts/wait-for-rabbitmq.sh rabbitmq guest guest /bin/true
+
+# Garantir que o composer install foi executado
+cd /var/www/html
+if [ ! -d "vendor" ]; then
+    composer install --no-interaction --optimize-autoloader
+fi
+
 # Função para tratamento de sinais
 cleanup() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Recebido sinal de término. Encerrando processador de notificações..."
@@ -28,4 +38,4 @@ while true; do
         echo "$(date '+%Y-%m-%d %H:%M:%S') - Erro no processador de notificações. Aguardando 10 segundos antes de reiniciar..."
         sleep 10
     fi
-done 
+done
