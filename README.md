@@ -12,30 +12,6 @@ O sistema inclui um processador de notificações que roda continuamente (24/7) 
 - Reinicia automaticamente em caso de falha
 - Pode ser gerenciado independentemente dos outros serviços
 
-## Sistema de Logs
-
-O sistema de logs de notificações utiliza o mecanismo nativo de logging do CodeIgniter. Todos os logs de processamento de notificações são armazenados no diretório:
-
-```
-/var/www/html/writable/logs/
-```
-
-Principais arquivos de log:
-
-- **log-YYYY-MM-DD.log**: Contém todos os logs do sistema, incluindo logs do processador de notificações, com entradas detalhadas sobre o processamento das mensagens, sucesso, falhas e reenvios.
-
-Para visualizar os logs do processador de notificações em tempo real, você pode usar o comando:
-
-```bash
-docker logs -f NOTIFICATION-PROCESSOR
-```
-
-Ou para ver os logs armazenados no arquivo:
-
-```bash
-docker compose exec notification-processor tail -n 50 /var/www/html/writable/logs/log-$(date +%Y-%m-%d).log
-```
-
 ## Tecnologias Utilizadas
 
 - CodeIgniter 4 (CI4)
@@ -123,6 +99,30 @@ docker compose exec php-fpm vendor/bin/phpunit
 ## Licença
 
 Este projeto está licenciado sob a licença MIT.
+
+## Sistema de Logs
+
+O sistema de logs de notificações utiliza o mecanismo nativo de logging do CodeIgniter. Todos os logs de processamento de notificações são armazenados no diretório:
+
+```
+/var/www/html/writable/logs/
+```
+
+Principais arquivos de log:
+
+- **log-YYYY-MM-DD.log**: Contém todos os logs do sistema, incluindo logs do processador de notificações, com entradas detalhadas sobre o processamento das mensagens, sucesso, falhas e reenvios.
+
+Para visualizar os logs do processador de notificações em tempo real, você pode usar o comando:
+
+```bash
+docker logs -f NOTIFICATION-PROCESSOR
+```
+
+Ou para ver os logs armazenados no arquivo:
+
+```bash
+docker compose exec notification-processor tail -n 50 /var/www/html/writable/logs/log-$(date +%Y-%m-%d).log
+```
 
 ## Documentação da Arquitetura do Projeto
 
