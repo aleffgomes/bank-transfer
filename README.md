@@ -25,7 +25,7 @@ O sistema inclui um processador de notificações que roda continuamente (24/7) 
 - Reinicia automaticamente em caso de falha
 - Pode ser gerenciado independentemente dos outros serviços
 
-## Tecnologias Utilizadas
+## Tecnologias
 
 - CodeIgniter 4 (CI4)
 - MySQL
