@@ -1,5 +1,18 @@
 # Transfer Service
 
+## Índice
+- [Descrição](#descrição)
+- [Tecnologias](#tecnologias)
+- [Configuração](#configuração)
+  - [Requisitos](#requisitos)
+  - [Instalação](#instalação)
+  - [Serviços Disponíveis](#serviços-disponíveis)
+- [Uso da API](#uso-da-api)
+- [Desenvolvimento](#desenvolvimento)
+- [Arquitetura](#arquitetura)
+- [Monitoramento](#monitoramento)
+- [Licença](#licença)
+
 ## Descrição
 
 Este projeto é um sistema de transferência de dinheiro entre usuários. Ele utiliza o CodeIgniter 4 (CI4) como framework principal, MySQL como banco de dados e RabbitMQ para gerenciamento de filas de notificações. Todo o ambiente é orquestrado utilizando Docker.
@@ -19,12 +32,16 @@ O sistema inclui um processador de notificações que roda continuamente (24/7) 
 - RabbitMQ
 - Docker
 
-## Requisitos
+## Configuração
+
+### Requisitos
 
 - Docker
 - Docker Compose
 
-## Clonagem do Repositório
+### Instalação
+
+#### 1. Clonagem do Repositório
 
 Para obter o código-fonte do projeto, siga estes passos:
 
@@ -35,7 +52,7 @@ cd bank-transfer
 
 Caso você não tenha acesso ao repositório original, você pode fazer um fork antes de clonar.
 
-## Instalação e Inicialização
+#### 2. Inicialização
 
 Apenas uma comando é necessário para iniciar todo o sistema:
 
@@ -62,7 +79,7 @@ O sistema estará pronto para uso em alguns instantes! Você pode acompanhar o p
 docker logs -f PHP-FPM
 ```
 
-## Serviços Disponíveis
+### Serviços Disponíveis
 
 Após a inicialização, os seguintes serviços estarão disponíveis:
 
@@ -71,7 +88,9 @@ Após a inicialização, os seguintes serviços estarão disponíveis:
 - **RabbitMQ Admin**: http://localhost:15672 (credenciais: guest/guest)
 - **MySQL**: localhost:3306 (credenciais: root/password)
 
-## API Endpoints
+## Uso da API
+
+### Endpoints Disponíveis
 
 O principal endpoint disponível para transferência está em:
 - **Endpoint de Transferência**: `POST http://localhost/transfer`
@@ -91,44 +110,34 @@ Consulte a documentação em http://localhost/docs para mais detalhes.
 
 ## Desenvolvimento
 
+### Executando Testes
+
 Para executar os testes:
 ```bash
 docker compose exec php-fpm vendor/bin/phpunit
 ```
 
-## Licença
+### Commands Disponíveis
 
-Este projeto está licenciado sob a licença MIT.
+Criar comandos para serem executados via CLI.
 
-## Sistema de Logs
+#### Exemplo de Estrutura
 
-O sistema de logs de notificações utiliza o mecanismo nativo de logging do CodeIgniter. Todos os logs de processamento de notificações são armazenados no diretório:
+Commands/
 
-```
-/var/www/html/writable/logs/
-```
+- **ResetDatabase.php**: Permite resetar o banco de dados completamente, recriando todas as tabelas e aplicando as migrations.
 
-Principais arquivos de log:
+  Para executar este comando:
+  ```bash
+  docker compose exec php-fpm php spark db:reset
+  ```
 
-- **log-YYYY-MM-DD.log**: Contém todos os logs do sistema, incluindo logs do processador de notificações, com entradas detalhadas sobre o processamento das mensagens, sucesso, falhas e reenvios.
+  Este comando é útil durante o desenvolvimento ou para reiniciar o ambiente para testes. Ele:
+  1. Remove todas as tabelas existentes
+  2. Recria a estrutura do banco de dados usando as migrations
+  3. Aplica os seeders se configurados
 
-Para visualizar os logs do processador de notificações em tempo real, você pode usar o comando:
-
-```bash
-docker logs -f NOTIFICATION-PROCESSOR
-```
-
-Ou para ver os logs armazenados no arquivo:
-
-```bash
-docker compose exec notification-processor tail -n 50 /var/www/html/writable/logs/log-$(date +%Y-%m-%d).log
-```
-
-## Documentação da Arquitetura do Projeto
-
-### Introdução
-
-Esta documentação descreve a arquitetura e os principais componentes do projeto utilizando CodeIgniter 4. Inclui informações sobre a estrutura de pastas, padrões de design, camadas de aplicação, e como diferentes componentes interagem entre si.
+## Arquitetura
 
 ### Estrutura de Pastas
 
@@ -169,44 +178,31 @@ project-root/
 └── docker-compose.yaml
 ```
 
-app/: Contém a lógica principal da aplicação.
+### Componentes Principais
+- [Provider (Injeção de Dependências)](#provider-injeção-de-dependências)
+- [Entidades](#entidades)
+- [Sistema de Filas](#sistema-de-filas-com-rabbitmq)
+- [Filtros](#filtro-de-autorização)
+- [Services](#camada-de-serviços-services)
+- [Controllers](#controllers)
+- [Models](#models)
+- [Migrations e Seeds](#migrations)
 
-Config/: Configurações da aplicação.
-Controllers/: Controladores da aplicação.
-Database/: Migrations e seeds.
-Filters/: Filtros personalizados (middlewares)
-Helpers/: Funções auxiliares globais.
-Libraries/: Bibliotecas customizadas.
-Models/: Modelos de dados.
-Services/: Lógica de negócios separada dos controladores.
-Entities/: Entidades para representação de objetos de domínio.
-ThirdParty/: Pacotes de terceiros.
-Views/: Arquivos de visualização.
-public/: Ponto de entrada da aplicação.
-
-tests/: Testes automatizados.
-
-writable/: Arquivos que a aplicação pode escrever.
-
-env: Arquivo de variáveis de ambiente.
-spark e composer.json: Gerenciamento de dependências.
-phpunit.xml: Configuração do PHPUnit.
-
-## Provider (Injeção de Dependências)
+### Provider (Injeção de Dependências)
 
 O sistema utiliza o padrão de injeção de dependências através do Service Provider do CodeIgniter 4, que centraliza a criação de serviços e facilita o gerenciamento de dependências.
 
-### Implementação
+#### Implementação
 
 O Service Provider está localizado em `app/Config/Services.php` e contém métodos estáticos para criar instâncias dos diversos serviços utilizados pela aplicação.
 
-### Funcionamento
+#### Funcionamento
 
 1. **Lazy Loading**: Os serviços são criados apenas quando necessários.
 2. **Singleton**: É possível configurar para que apenas uma instância seja criada.
 3. **Substituição de Serviços**: Facilita a substituição de implementações para testes.
 
-### Exemplo
+#### Exemplo
 
 ```php
 // Em app/Config/Services.php
@@ -225,22 +221,22 @@ public static function transferService($getShared = true): TransferServiceInterf
 }
 ```
 
-## Entidades
+### Entidades
 
 As entidades representam objetos de domínio na aplicação, tais como Usuário, Carteira, etc.
 
-### Objetivo
+#### Objetivo
 
 - Encapsular dados e comportamentos relativos a um objeto de domínio
 - Fornecer validações específicas do domínio
 - Separar lógica de negócio do acesso a dados
 
-### Exemplos de Entidades
+#### Exemplos de Entidades
 
 - **User**: Representa um usuário, com métodos como `isCommonUser()` e `isMerchant()`.
 - **Wallet**: Representa uma carteira, com métodos como `hasSufficientBalance()`, `debit()` e `credit()`.
 
-### Interação com Models
+#### Interação com Models
 
 Os Models são configurados para retornar instâncias de Entidades, ao invés de arrays.
 
@@ -249,21 +245,21 @@ Os Models são configurados para retornar instâncias de Entidades, ao invés de
 protected $returnType = 'App\Entities\User';
 ```
 
-## Sistema de Filas com RabbitMQ
+### Sistema de Filas com RabbitMQ
 
 O sistema utiliza o RabbitMQ para gerenciar filas de notificações, principalmente para retentar notificações que falharam.
 
-### Funcionamento
+#### Funcionamento
 
 1. **Processamento Assíncrono**: Notificações são processadas de forma assíncrona, permitindo que a transação principal seja concluída mesmo se a notificação falhar.
 2. **Durabilidade**: Mensagens são persistidas, garantindo que não sejam perdidas mesmo que o servidor reinicie.
 3. **Tentativas Múltiplas**: O sistema tenta reenviar notificações falhas várias vezes antes de descartá-las.
 
-### Implementação
+#### Implementação
 
 O serviço `NotificationService` encapsula a lógica de envio e gerenciamento da fila de notificações.
 
-## Filtro de Autorização
+### Filtro de Autorização
 
 O sistema utiliza o filtro `CheckAuth.php` para verificar a autorização de requisições. Este filtro:
 
@@ -274,38 +270,38 @@ O sistema utiliza o filtro `CheckAuth.php` para verificar a autorização de req
 
 Este filtro é aplicado globalmente a endpoints críticos, simplificando o código dos controladores e centralizando a lógica de autorização.
 
-## Camada de Serviços (Services)
+### Camada de Serviços (Services)
 
-### Objetivo
+#### Objetivo
 
 A camada de serviços encapsula a lógica de negócios da aplicação, separando-a dos controladores para promover reutilização e facilitar testes automatizados.
 
-### Exemplo de Estrutura
+#### Exemplo de Estrutura
 
 Services/
 
 - TransferService.php: Implementa a lógica de transferência de dinheiro entre usuários.
 - NotificationService.php: Envia notificações aos usuários.
 
-## Controllers
+### Controllers
 
-### Objetivo
+#### Objetivo
 
 Os controladores recebem requisições HTTP, interagem com os serviços e retornam respostas para o cliente.
 
-### Exemplo de Estrutura
+#### Exemplo de Estrutura
 
 Controllers/
 
 - TransferController.php: Controla as operações de transferência de dinheiro.
 
-## Models
+### Models
 
-### Objetivo
+#### Objetivo
 
 Os modelos representam e interagem com os dados do banco de dados, retornando entidades que encapsulam a lógica de domínio.
 
-### Exemplo de Estrutura
+#### Exemplo de Estrutura
 
 Models/
 
@@ -314,57 +310,38 @@ Models/
 - TransactionModel.php: Modelo para gerenciamento de transações.
 - TransactionStatusModel.php: Modelo para gerenciamento de status de transações.
 
-## Migrations
+### Migrations e Seeds
 
-### Objetivo
+#### Migrations
 
 As migrations são scripts PHP que criam e modificam a estrutura do banco de dados de forma controlada.
 
-### Exemplo de Estrutura
+##### Exemplo de Estrutura
 
 Database/Migrations/
 
 - 20240101000000_create_users_table.php: Criação da tabela de usuários.
 - 20240102000000_create_wallets_table.php: Criação da tabela de carteiras.
 
-## Seeds
-
-### Objetivo
+#### Seeds
 
 Os seeds são scripts PHP que inserem dados iniciais no banco de dados.
 
-### Exemplo de Estrutura
+##### Exemplo de Estrutura
 
 Database/Seeds/
 
 - UsersSeeder.php: Popula a tabela de usuários com dados de exemplo.
 - WalletsSeeder.php: Popula a tabela de carteiras com dados de exemplo.
 
-## Commands
+### Características Técnicas
+- [Sistema de Manipulação de Valores Monetários](#sistema-de-manipulação-de-valores-monetários)
+- [Tratamento de Race Conditions](#tratamento-de-race-conditions)
+- [Prevenção de Inconsistências](#prevenção-de-inconsistências-com-transações)
 
-### Objetivo
+### Sistema de Manipulação de Valores Monetários
 
-Criar comandos para serem executados via CLI.
-
-### Exemplo de Estrutura
-
-Commands/
-
-- **ResetDatabase.php**: Permite resetar o banco de dados completamente, recriando todas as tabelas e aplicando as migrations.
-
-  Para executar este comando:
-  ```bash
-  docker compose exec php-fpm php spark db:reset
-  ```
-
-  Este comando é útil durante o desenvolvimento ou para reiniciar o ambiente para testes. Ele:
-  1. Remove todas as tabelas existentes
-  2. Recria a estrutura do banco de dados usando as migrations
-  3. Aplica os seeders se configurados
-
-## Sistema de Manipulação de Valores Monetários
-
-### Classe Money
+#### Classe Money
 
 O projeto utiliza a classe `Money.php` para lidar com valores monetários de forma precisa e segura. Esta abordagem resolve problemas comuns ao trabalhar com valores monetários:
 
@@ -374,10 +351,40 @@ O projeto utiliza a classe `Money.php` para lidar com valores monetários de for
 
 Esta classe é essencial para aplicações financeiras, garantindo que os cálculos monetários sejam precisos e confiáveis.
 
-## Tratamento de Race Conditions
+### Tratamento de Race Conditions
 
 O sistema implementa bloqueio otimista de linhas (row locking) utilizando `FOR UPDATE` nas transações críticas para evitar condições de corrida (race conditions) durante transferências.
 
-## Prevenção de Inconsistências com Transações
+### Prevenção de Inconsistências com Transações
 
 O sistema utiliza transações do banco de dados para garantir que operações críticas (como transferência de fundos) sejam atômicas, mantendo a consistência dos dados mesmo em caso de falhas.
+
+## Monitoramento
+
+### Sistema de Logs
+
+O sistema de logs de notificações utiliza o mecanismo nativo de logging do CodeIgniter. Todos os logs de processamento de notificações são armazenados no diretório:
+
+```
+/var/www/html/writable/logs/
+```
+
+Principais arquivos de log:
+
+- **log-YYYY-MM-DD.log**: Contém todos os logs do sistema, incluindo logs do processador de notificações, com entradas detalhadas sobre o processamento das mensagens, sucesso, falhas e reenvios.
+
+Para visualizar os logs do processador de notificações em tempo real, você pode usar o comando:
+
+```bash
+docker logs -f NOTIFICATION-PROCESSOR
+```
+
+Ou para ver os logs armazenados no arquivo:
+
+```bash
+docker compose exec notification-processor tail -n 50 /var/www/html/writable/logs/log-$(date +%Y-%m-%d).log
+```
+
+## Licença
+
+Este projeto está licenciado sob a licença MIT.
