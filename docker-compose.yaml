@@ -8,12 +8,29 @@ services:
     container_name: PHP-FPM
     volumes:
       - ./:/var/www/html
+      - vendor_data:/var/www/html/vendor
     networks:
       - app
     depends_on:
       - mysql
       - rabbitmq
     command: bash -c "/var/www/html/docker/scripts/wait-for-db.sh mysql_local root password transfer /bin/true && /var/www/html/docker/scripts/init-app.sh && php-fpm"
+
+  notification-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: NOTIFICATION-PROCESSOR
+    command: ["/var/www/html/docker/scripts/notification-processor.sh"]
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - app
+    depends_on:
+      - php-fpm
+      - mysql
+      - rabbitmq
+    restart: unless-stopped
 
   nginx:
     image: nginx:latest
@@ -23,6 +40,7 @@ services:
     volumes:
       - ./:/var/www/html
       - ./docker/config/nginx.conf:/etc/nginx/conf.d/default.conf
+      - vendor_data:/var/www/html/vendor
     networks:
       - app
     depends_on:
@@ -33,15 +51,13 @@ services:
     container_name: MYSQL
     hostname: mysql_local
     volumes:
-      - ./.docker/mysql:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
     restart: always
     ports:
       - 3306:3306
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: transfer
-      MYSQL_USER: root
-      MYSQL_PASSWORD: password
     networks:
       - app
     healthcheck:
@@ -61,8 +77,8 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     volumes:
-      - ./.docker/rabbitmq/data:/var/lib/rabbitmq/
-      - ./.docker/rabbitmq/log:/var/log/rabbitmq
+      - rabbitmq_data:/var/lib/rabbitmq/
+      - rabbitmq_log:/var/log/rabbitmq
     restart: always
     networks:
       - app
@@ -80,3 +96,9 @@ services:
 networks:
   app:
     driver: bridge
+
+volumes:
+  vendor_data:
+  mysql_data:
+  rabbitmq_data:
+  rabbitmq_log:

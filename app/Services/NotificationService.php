@@ -133,6 +133,64 @@ class NotificationService implements NotificationServiceInterface
     }
 
     /**
+     * Process notifications from the queue without timeout
+     * 
+     * @return int Number of processed messages
+     */
+    public function processNotifications(): int
+    {
+        $processedCount = 0;
+        
+        try {
+            if (!$this->channel || !$this->channel->is_open()) {
+                $this->setupRabbitMqConnection();
+            }
+            
+            $callback = function (AMQPMessage $msg) use (&$processedCount) {
+                $data = json_decode($msg->body, true);
+                $processedCount++;
+                
+                if ($data['attempts'] > self::MAX_ATTEMPTS) {
+                    $msg->nack(false);
+                    log_message('warning', 'Notification discarded after ' . self::MAX_ATTEMPTS . ' attempts: ' . $msg->body);
+                    return;
+                }
+                
+                if ($this->sendNotification($data['user_id'], $data['message'], false)) {
+                    $msg->ack();
+                    log_message('info', 'Notification processed successfully: ' . $msg->body);
+                } else {
+                    $data['attempts'] += 1;
+                    $this->addToQueue($data);
+                    
+                    $msg->ack();
+                    log_message('info', 'Notification failed, re-queued: ' . json_encode($data));
+                }
+            };
+            
+            $this->channel->basic_consume(
+                self::QUEUE_NAME,       
+                '',                     
+                false,                  
+                false,                  
+                false,                  
+                false,                  
+                $callback               
+            );
+            
+            // Process one message and return
+            if (count($this->channel->callbacks)) {
+                $this->channel->wait(null, true, 1);
+            }
+            
+            return $processedCount;
+        } catch (\Exception $e) {
+            log_message('error', 'Error processing notification queue: ' . $e->getMessage());
+            return $processedCount;
+        }
+    }
+
+    /**
      * Retries failed notifications
      * 
      * @param int $timeout Maximum time in seconds to process messages (default: 10)

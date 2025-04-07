@@ -2,13 +2,20 @@
 
 namespace App\Database\Seeds;
 
-use CodeIgniter\Database\Seeder;
+use CodeIgniter\Database\Seeder as BaseSeeder;
+use Faker\Factory;
 
-class UserSeeder extends Seeder
+class UserSeeder extends BaseSeeder
 {
+    /**
+     * @var \CodeIgniter\Database\BaseConnection
+     */
+    protected $db;
+
     public function run()
     {
-        $faker = \Faker\Factory::create();
+        $this->db = \Config\Database::connect();
+        $faker = Factory::create();
 
         $users = [];
         for ($i = 1; $i <= 5; $i++) {
@@ -31,7 +38,12 @@ class UserSeeder extends Seeder
             ];
         }
 
-        if ($this->db->table('users')->countAll() > 0) return;
+        if ($this->db->table('users')->countAllResults() > 0) {
+            log_message('info', 'Tabela "users" já populada. Pulando UserSeeder.');
+            return;
+        }
+        
         $this->db->table('users')->insertBatch($users);
+        log_message('info', 'UserSeeder executado com sucesso.');
     }
 }
