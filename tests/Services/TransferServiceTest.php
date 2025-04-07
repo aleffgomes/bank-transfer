@@ -182,8 +182,25 @@ class TransferServiceTest extends CIUnitTestCase
         $this->assertEquals('Payer Wallet not found.', $result['error']);
         $this->assertEquals(404, $result['code']);
     }
-    
-    public function testTransferAuthorizationFailed()
+
+    public function testTransferToSelf()
+    {
+        // Mocking User entity
+        $user = new User([
+            'id_user' => 1,
+            'type_name' => 'user'
+        ]);
+        
+        $this->userModel->method('getUserById')
+            ->willReturn($user);
+        
+        $result = $this->transferService->transfer(1, 1, 100);
+        
+        $this->assertEquals('You cannot send money to yourself.', $result['error']);
+        $this->assertEquals(403, $result['code']);
+    }
+
+    public function testTransferSaveTransactionFailure()
     {
         // Mock for payer and payee
         $payer = $this->createMock(User::class);
@@ -204,24 +221,93 @@ class TransferServiceTest extends CIUnitTestCase
         $wallet->method('__get')->willReturnMap([
             ['balance', 1000]
         ]);
-            
+
         // Setting up mock returns
         $this->userModel->method('getUserById')
             ->willReturnMap([
                 [1, $payer],
                 [2, $payee]
             ]);
-            
+
         $this->walletModel->method('getWalletByUserId')
             ->willReturn($wallet);
-            
-        // Configure the authorization service to return false
-        $this->authorizationService->method('checkAuthorization')
-            ->willReturn(false);
-            
+
+        $this->transactionStatusModel->method('getStatusId')
+            ->willReturn(1);
+
+        // Simular falha ao salvar a transação
+        $this->transactionModel->method('saveTransaction')
+            ->willReturn(0);
+
         $result = $this->transferService->transfer(1, 2, 100);
+
+        $this->assertEquals('Transaction failed.', $result['error']);
+        $this->assertEquals(500, $result['code']);
+    }
+
+    public function testTransferUpdateWalletBalancesFailure()
+    {
+        // Mock for payer and payee
+        $payer = $this->createMock(User::class);
+        $payer->method('isMerchant')->willReturn(false);
+        $payer->method('__get')->willReturnMap([
+            ['id_user', 1],
+            ['name', 'John Doe']
+        ]);
         
-        $this->assertEquals('Transaction not authorized by external service.', $result['error']);
-        $this->assertEquals(403, $result['code']);
+        $payee = $this->createMock(User::class);
+        $payee->method('__get')->willReturnMap([
+            ['id_user', 2]
+        ]);
+
+        // Mock for wallet
+        $wallet = $this->createMock(Wallet::class);
+        $wallet->method('hasSufficientBalance')->willReturn(true);
+        $wallet->method('__get')->willReturnMap([
+            ['balance', 1000]
+        ]);
+
+        // Setting up mock returns
+        $this->userModel->method('getUserById')
+            ->willReturnMap([
+                [1, $payer],
+                [2, $payee]
+            ]);
+
+        $this->walletModel->method('getWalletByUserId')
+            ->willReturn($wallet);
+
+        $this->transactionStatusModel->method('getStatusId')
+            ->willReturn(1);
+
+        $this->transactionModel->method('saveTransaction')
+            ->willReturn(1);
+
+        // Simular falha ao atualizar os saldos
+        $this->walletModel->method('updateWalletBalances')
+            ->willReturn(false);
+
+        $result = $this->transferService->transfer(1, 2, 100);
+
+        $this->assertEquals('Transaction failed when updating wallet balances.', $result['error']);
+        $this->assertEquals(500, $result['code']);
+    }
+
+    public function testTransferException()
+    {
+        // Mock for payer and payee
+        $payer = $this->createMock(User::class);
+        $payer->method('isMerchant')->willReturn(false);
+        
+        // Simular uma exceção ao tentar acessar uma propriedade inexistente
+        $payer->method('__get')->willThrowException(new \Exception('Payer Wallet not found.'));
+
+        $this->userModel->method('getUserById')
+            ->willReturn($payer);
+
+        $result = $this->transferService->transfer(1, 2, 100);
+
+        $this->assertEquals('Payer Wallet not found.', $result['error']);
+        $this->assertEquals(404, $result['code']);
     }
 }

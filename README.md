@@ -4,6 +4,38 @@
 
 Este projeto é um sistema de transferência de dinheiro entre usuários. Ele utiliza o CodeIgniter 4 (CI4) como framework principal, MySQL como banco de dados e RabbitMQ para gerenciamento de filas de notificações. Todo o ambiente é orquestrado utilizando Docker.
 
+O sistema inclui um processador de notificações que roda continuamente (24/7) em um container separado, garantindo que todas as notificações sejam entregues aos usuários, mesmo em caso de falhas temporárias. Este processador:
+
+- Monitora a fila de notificações no RabbitMQ
+- Tenta reenviar notificações que falharam anteriormente
+- Mantém logs detalhados no sistema de logging do CodeIgniter
+- Reinicia automaticamente em caso de falha
+- Pode ser gerenciado independentemente dos outros serviços
+
+## Sistema de Logs
+
+O sistema de logs de notificações utiliza o mecanismo nativo de logging do CodeIgniter. Todos os logs de processamento de notificações são armazenados no diretório:
+
+```
+/var/www/html/writable/logs/
+```
+
+Principais arquivos de log:
+
+- **log-YYYY-MM-DD.log**: Contém todos os logs do sistema, incluindo logs do processador de notificações, com entradas detalhadas sobre o processamento das mensagens, sucesso, falhas e reenvios.
+
+Para visualizar os logs do processador de notificações em tempo real, você pode usar o comando:
+
+```bash
+docker logs -f NOTIFICATION-PROCESSOR
+```
+
+Ou para ver os logs armazenados no arquivo:
+
+```bash
+docker compose exec notification-processor tail -n 50 /var/www/html/writable/logs/log-$(date +%Y-%m-%d).log
+```
+
 ## Tecnologias Utilizadas
 
 - CodeIgniter 4 (CI4)
@@ -32,7 +64,7 @@ Caso você não tenha acesso ao repositório original, você pode fazer um fork 
 Apenas uma comando é necessário para iniciar todo o sistema:
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 Este comando:
@@ -40,8 +72,13 @@ Este comando:
 - Cria o arquivo .env a partir do .env.example automaticamente (se não existir)
 - Instala as dependências do Composer
 - Executa migrações do banco de dados
-- Popula o banco de dados com dados iniciais (caso o banco esteja vazio)
 - Gera a documentação OpenAPI/Swagger
+
+**Importante:** O povoamento do banco de dados (seeds) **não** é executado automaticamente na inicialização. Execute o seguinte comando **após** o `docker compose up`:
+
+```bash
+docker compose exec php-fpm php spark db:seed DatabaseSeeder
+```
 
 O sistema estará pronto para uso em alguns instantes! Você pode acompanhar o progresso com:
 
@@ -75,6 +112,17 @@ Corpo da requisição (exemplo):
 > **Importante:** Os valores monetários devem ser enviados com ponto decimal (.) para separar os centavos, por exemplo: 100.55 para representar 100 reais e 55 centavos. O formato 100,55 não será aceito pela API.
 
 Consulte a documentação em http://localhost/docs para mais detalhes.
+
+## Desenvolvimento
+
+Para executar os testes:
+```bash
+docker compose exec php-fpm vendor/bin/phpunit
+```
+
+## Licença
+
+Este projeto está licenciado sob a licença MIT.
 
 ## Documentação da Arquitetura do Projeto
 
@@ -302,21 +350,11 @@ Criar comandos para serem executados via CLI.
 
 Commands/
 
-- **ProcessNotificationQueue.php**: Processa a fila de notificações mal sucedidas armazenadas no RabbitMQ. Este comando pode ser configurado para ser executado periodicamente através de um cron job.
-
-  Para executar este comando manualmente:
-  ```bash
-  php spark queue:process --timeout=60
-  ```
-  Onde `timeout` é o tempo máximo em segundos que o processo ficará em execução tentando processar notificações pendentes. O padrão é 30 segundos.
-
-  Este comando é fundamental para garantir que as notificações que falharam durante o processo de transferência sejam eventualmente entregues, melhorando a confiabilidade do sistema.
-
 - **ResetDatabase.php**: Permite resetar o banco de dados completamente, recriando todas as tabelas e aplicando as migrations.
 
   Para executar este comando:
   ```bash
-  php spark db:reset
+  docker compose exec php-fpm php spark db:reset
   ```
 
   Este comando é útil durante o desenvolvimento ou para reiniciar o ambiente para testes. Ele:
@@ -333,7 +371,6 @@ O projeto utiliza a classe `Money.php` para lidar com valores monetários de for
 - **Evita problemas de precisão com números de ponto flutuante**: Armazena valores em centavos como inteiros para evitar erros de arredondamento.
 - **Garante operações matemáticas precisas**: Adição, subtração, multiplicação e divisão são implementadas com precisão.
 - **Imutabilidade**: Cada operação retorna uma nova instância de Money, evitando efeitos colaterais.
-- **Comparações confiáveis**: Métodos como `isGreaterThan()`, `isEqualTo()` garantem comparações corretas.
 
 Esta classe é essencial para aplicações financeiras, garantindo que os cálculos monetários sejam precisos e confiáveis.
 
@@ -344,6 +381,3 @@ O sistema implementa bloqueio otimista de linhas (row locking) utilizando `FOR U
 ## Prevenção de Inconsistências com Transações
 
 O sistema utiliza transações do banco de dados para garantir que operações críticas (como transferência de fundos) sejam atômicas, mantendo a consistência dos dados mesmo em caso de falhas.
-
-
-

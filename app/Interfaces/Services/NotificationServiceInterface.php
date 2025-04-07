@@ -16,6 +16,13 @@ interface NotificationServiceInterface
     public function addToQueue(array $data): void;
     
     /**
+     * Process notifications from the queue without timeout
+     * 
+     * @return int Number of processed messages
+     */
+    public function processNotifications(): int;
+    
+    /**
      * Retries failed notifications
      * 
      * @param int $timeout Maximum time in seconds to process messages (default: 10)
