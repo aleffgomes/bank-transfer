@@ -59,7 +59,7 @@ docker compose exec php-fpm php spark db:seed DatabaseSeeder
 O sistema estará pronto para uso em alguns instantes! Você pode acompanhar o progresso com:
 
 ```bash
-docker logs -f APP
+docker logs -f PHP-FPM
 ```
 
 ## Serviços Disponíveis
