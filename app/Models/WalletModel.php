@@ -17,51 +17,16 @@ class WalletModel extends Model implements WalletModelInterface
     protected $useSoftDeletes = false;
     protected $protectFields = true;
 
-    protected bool $allowEmptyInserts = false;
-    protected bool $updateOnlyChanged = true;
-
-    protected array $casts = [];
-    protected array $castHandlers = [];
-
+    // Configurações de tempo e formato
     protected $useTimestamps = true;
     protected $dateFormat = 'datetime';
     protected $createdField = 'created_at';
-    protected $updatedField = 'updated_at';
 
-    protected $validationRules = [];
-    protected $validationMessages = [];
-    protected $skipValidation = false;
-    protected $cleanValidationRules = true;
-
-    protected $allowCallbacks = true;
-    protected $beforeInsert = [];
-    protected $afterInsert = [];
-    protected $beforeUpdate = [];
-    protected $afterUpdate = [];
-    protected $beforeFind = [];
-    protected $afterFind = [];
-    protected $beforeDelete = [];
-    protected $afterDelete = [];
-
-    /**
-     * Get the wallet for a given user ID.
-     *
-     * @param int $userId The ID of the user.
-     * @return Wallet|null The user's wallet or null if not found.
-     */
     public function getWalletByUserId(int $userId): ?Wallet
     {
         return $this->where('user_id', $userId)->first();
     }
 
-    /**
-     * Update the balances of the wallets of the given payer and payee.
-     *
-     * @param int $payerId The ID of the payer.
-     * @param int $payeeId The ID of the payee.
-     * @param float|Money $amount The amount to update the balances by.
-     * @return bool Whether the update was successful.
-     */
     public function updateWalletBalances(int $payerId, int $payeeId, $amount): bool
     {
         $db = \Config\Database::connect();

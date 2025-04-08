@@ -9,6 +9,7 @@ use App\Interfaces\Models\UserModelInterface;
 use App\Interfaces\Models\WalletModelInterface;
 use App\Interfaces\Models\TransactionModelInterface;
 use App\Interfaces\Models\TransactionStatusModelInterface;
+use App\Entities\Money;
 
 class TransferService implements TransferServiceInterface
 {
@@ -44,88 +45,108 @@ class TransferService implements TransferServiceInterface
         $this->db = \Config\Database::connect();
     }
 
-    /**
-     * Transfer money from one user to another.
-     *
-     * @param int $payerId
-     * @param int $payeeId
-     * @param float $amount
-     * @return array
-     */
     public function transfer(int $payerId, int $payeeId, float $amount): array
     {
         $this->db->transBegin();
 
         try {
-            // Convert amount to Money object for precise calculations
-            $moneyAmount = new \App\Entities\Money($amount);
+            $moneyAmount = new Money($amount);
             
-            $payer = $this->userModel->getUserById($payerId);
-            $payee = $this->userModel->getUserById($payeeId);
-
-            if (!$payer || !$payee) {
+            $validationResult = $this->validateTransfer($payerId, $payeeId, $moneyAmount);
+            if (isset($validationResult['error'])) {
                 $this->db->transRollback();
-                return ['error' => 'Payer or Payee not found.', 'code' => 404];
-            }
-
-            if ($payerId == $payeeId) {
-                $this->db->transRollback();
-                return ['error' => 'You cannot send money to yourself.', 'code' => 403];
-            }
-
-            $payerWallet = $this->walletModel->getWalletByUserId($payerId);
-
-            if (!$payerWallet) {
-                $this->db->transRollback();
-                return ['error' => 'Payer Wallet not found.', 'code' => 404];
+                return $validationResult;
             }
             
-            if ($payer->isMerchant()) {
+            $payer = $validationResult['payer'];
+            $payee = $validationResult['payee'];
+            $payerWallet = $validationResult['payerWallet'];
+            
+            $transactionResult = $this->processTransaction($payerId, $payeeId, $moneyAmount);
+            if (isset($transactionResult['error'])) {
                 $this->db->transRollback();
-                return ['error' => 'Merchants cannot send money.', 'code' => 403];
+                return $transactionResult;
             }
-
-            if (!$payerWallet->hasSufficientBalance($moneyAmount)) {
-                $this->db->transRollback();
-                return [
-                    'error' => 'Insufficient balance. Your balance is: ' . $payerWallet->balance . ' ' . self::CURRENCY, 
-                    'code' => 403
-                ];
-            }
-
-            $statusId = $this->transactionStatusModel->getStatusId(self::STATUS_PENDING);
-            $transactionId = $this->transactionModel->saveTransaction($payerId, $payeeId, $moneyAmount, $statusId);
-
-            if (!$transactionId) {
-                $this->db->transRollback();
-                return ['error' => 'Transaction failed.', 'code' => 500];
-            }
-
-            $walletUpdate = $this->walletModel->updateWalletBalances($payerId, $payeeId, $moneyAmount);
-
-            if (!$walletUpdate) {
-                $statusId = $this->transactionStatusModel->getStatusId(self::STATUS_FAILED);
-                $this->transactionModel->updateTransactionStatus($transactionId, $statusId);
-                $this->db->transRollback();
-                return ['error' => 'Transaction failed when updating wallet balances.', 'code' => 500];
-            }
-
-            $statusId = $this->transactionStatusModel->getStatusId(self::STATUS_COMPLETED);
-            $this->transactionModel->updateTransactionStatus($transactionId, $statusId);
-
+            
+            $transactionId = $transactionResult['transactionId'];
+            
             $this->db->transCommit();
-
-            // Send notification to payee
-            $this->notificationService->sendNotification(
-                $payeeId,
-                "You received " . $moneyAmount->format() . " " . self::CURRENCY . " from " . $payer->name . "."
-            );
-
-            return ['message' => 'Transaction successful. Transaction ID: ' . $transactionId, 'code' => 200];
+            $this->sendSuccessNotification($payeeId, $moneyAmount, $payer->name);
+            
+            return [
+                'message' => 'Transaction successful. Transaction ID: ' . $transactionId, 
+                'code' => 200
+            ];
         } catch (\Exception $e) {
             $this->db->transRollback();
             log_message('error', 'Error in transfer: ' . $e->getMessage());
             return ['error' => $e->getMessage(), 'code' => 500];
         }
+    }
+    
+    private function validateTransfer(int $payerId, int $payeeId, Money $amount): array
+    {
+        $payer = $this->userModel->getUserById($payerId);
+        $payee = $this->userModel->getUserById($payeeId);
+
+        if (!$payer || !$payee) {
+            return ['error' => 'Payer or Payee not found.', 'code' => 404];
+        }
+
+        if ($payerId == $payeeId) {
+            return ['error' => 'You cannot send money to yourself.', 'code' => 403];
+        }
+
+        $payerWallet = $this->walletModel->getWalletByUserId($payerId);
+        if (!$payerWallet) {
+            return ['error' => 'Payer Wallet not found.', 'code' => 404];
+        }
+        
+        if ($payer->isMerchant()) {
+            return ['error' => 'Merchants cannot send money.', 'code' => 403];
+        }
+
+        if (!$payerWallet->hasSufficientBalance($amount)) {
+            return [
+                'error' => 'Insufficient balance. Your balance is: ' . $payerWallet->balance . ' ' . self::CURRENCY, 
+                'code' => 403
+            ];
+        }
+        
+        return [
+            'payer' => $payer,
+            'payee' => $payee,
+            'payerWallet' => $payerWallet
+        ];
+    }
+    
+    private function processTransaction(int $payerId, int $payeeId, Money $amount): array
+    {
+        $statusId = $this->transactionStatusModel->getStatusId(self::STATUS_PENDING);
+        $transactionId = $this->transactionModel->saveTransaction($payerId, $payeeId, $amount, $statusId);
+
+        if (!$transactionId) {
+            return ['error' => 'Transaction failed.', 'code' => 500];
+        }
+
+        $walletUpdate = $this->walletModel->updateWalletBalances($payerId, $payeeId, $amount);
+        if (!$walletUpdate) {
+            $statusId = $this->transactionStatusModel->getStatusId(self::STATUS_FAILED);
+            $this->transactionModel->updateTransactionStatus($transactionId, $statusId);
+            return ['error' => 'Transaction failed when updating wallet balances.', 'code' => 500];
+        }
+
+        $statusId = $this->transactionStatusModel->getStatusId(self::STATUS_COMPLETED);
+        $this->transactionModel->updateTransactionStatus($transactionId, $statusId);
+        
+        return ['transactionId' => $transactionId];
+    }
+    
+    private function sendSuccessNotification(int $payeeId, Money $amount, string $payerName): void
+    {
+        $this->notificationService->sendNotification(
+            $payeeId,
+            "You received " . $amount->format() . " " . self::CURRENCY . " from " . $payerName . "."
+        );
     }
 }

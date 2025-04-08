@@ -23,32 +23,16 @@ class User extends Entity
         'type_id' => 'integer',
     ];
 
-    /**
-     * Checks if user is a merchant
-     *
-     * @return bool
-     */
     public function isMerchant(): bool
     {
         return $this->attributes['type_name'] === 'merchant';
     }
 
-    /**
-     * Checks if user is a common user
-     *
-     * @return bool
-     */
     public function isCommonUser(): bool
     {
         return $this->attributes['type_name'] === 'user';
     }
 
-    /**
-     * Checks if this user can send money
-     * (only common users can send money)
-     *
-     * @return bool
-     */
     public function canSendMoney(): bool
     {
         return $this->isCommonUser();

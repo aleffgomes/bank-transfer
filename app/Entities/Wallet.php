@@ -20,18 +20,8 @@ class Wallet extends Entity
         'balance' => 'float',
     ];
     
-    /**
-     * Internal money object for precise operations
-     * 
-     * @var Money
-     */
     private ?Money $moneyBalance = null;
     
-    /**
-     * Returns the balance as a Money object
-     * 
-     * @return Money
-     */
     public function getBalanceAsMoney(): Money
     {
         if ($this->moneyBalance === null) {
@@ -41,12 +31,6 @@ class Wallet extends Entity
         return $this->moneyBalance;
     }
     
-    /**
-     * Sets the balance from a Money object
-     * 
-     * @param Money $money
-     * @return self
-     */
     public function setBalanceFromMoney(Money $money): self
     {
         $this->moneyBalance = $money;
@@ -54,12 +38,6 @@ class Wallet extends Entity
         return $this;
     }
 
-    /**
-     * Check if the wallet has sufficient balance for a transaction.
-     * 
-     * @param float|Money $amount Amount to be checked
-     * @return bool True if there is sufficient balance
-     */
     public function hasSufficientBalance($amount): bool
     {
         // If amount is not a Money object, convert it
@@ -70,12 +48,6 @@ class Wallet extends Entity
         return $this->getBalanceAsMoney()->isGreaterThanOrEqual($amount);
     }
 
-    /**
-     * Debits an amount from the wallet
-     *
-     * @param float|Money $amount
-     * @return self
-     */
     public function debit($amount): self
     {
         $moneyAmount = $amount instanceof Money ? $amount : new Money($amount);
@@ -90,12 +62,6 @@ class Wallet extends Entity
         return $this;
     }
 
-    /**
-     * Credits an amount to the wallet
-     *
-     * @param float|Money $amount
-     * @return self
-     */
     public function credit($amount): self
     {
         $moneyAmount = $amount instanceof Money ? $amount : new Money($amount);

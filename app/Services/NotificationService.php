@@ -20,9 +20,6 @@ class NotificationService implements NotificationServiceInterface
         $this->setupRabbitMqConnection();
     }
 
-    /**
-     * Sets up the RabbitMQ connection
-     */
     private function setupRabbitMqConnection(): void
     {
         try {
@@ -54,9 +51,6 @@ class NotificationService implements NotificationServiceInterface
         }
     }
     
-    /**
-     * Closes the RabbitMQ connection when the object is destroyed
-     */
     public function __destruct()
     {
         if (isset($this->channel) && $this->channel->is_open()) {
@@ -68,14 +62,6 @@ class NotificationService implements NotificationServiceInterface
         }
     }
 
-    /**
-     * Sends a notification to the user
-     *
-     * @param int $userId User ID
-     * @param string $message Message to be sent
-     * @param bool $addToQueue Add to queue if notification fails
-     * @return bool
-     */
     public function sendNotification(int $userId, string $message, bool $addToQueue = true): bool
     {
         $data = [
@@ -95,11 +81,6 @@ class NotificationService implements NotificationServiceInterface
         }
     }
 
-    /**
-     * Adds a notification to the queue
-     *
-     * @param array $data Notification data
-     */
     public function addToQueue(array $data): void
     {
         if (!isset($data['attempts'])) {
@@ -132,11 +113,6 @@ class NotificationService implements NotificationServiceInterface
         }
     }
 
-    /**
-     * Process notifications from the queue without timeout
-     * 
-     * @return int Number of processed messages
-     */
     public function processNotifications(): int
     {
         $processedCount = 0;
@@ -190,12 +166,6 @@ class NotificationService implements NotificationServiceInterface
         }
     }
 
-    /**
-     * Retries failed notifications
-     * 
-     * @param int $timeout Maximum time in seconds to process messages (default: 10)
-     * @return int Number of processed messages
-     */
     public function retryFailedNotifications(int $timeout = 10): int
     {
         $processedCount = 0;

@@ -17,11 +17,6 @@ class ProcessNotificationQueue extends BaseCommand
         '--sleep' => 'Sleep time in seconds between processing attempts when queue is empty (default: 5)',
     ];
 
-    /**
-     * Flag to control
-     *
-     * @var bool
-     */
     private bool $shouldContinue = true;
 
     public function run(array $params)

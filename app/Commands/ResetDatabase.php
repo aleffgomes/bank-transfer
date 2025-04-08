@@ -19,11 +19,6 @@ class ResetDatabase extends BaseCommand
         CLI::write('Database reset completed.', 'green');
     }
 
-    /**
-     * Drop all tables in the connected database.
-     *
-     * @return void
-     */
     protected function dropTables(): void
     {
         $database = \Config\Database::connect();
@@ -38,11 +33,6 @@ class ResetDatabase extends BaseCommand
         }
     }
 
-    /**
-     * Recreate all tables in the connected database.
-     *
-     * @return void
-     */
     protected function recreateTables(): void
     {
         $migrate = \Config\Services::migrations();

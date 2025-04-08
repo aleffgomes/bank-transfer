@@ -10,7 +10,7 @@
                 "summary": "Transfer money from one user to another",
                 "operationId": "d6fe68ef4dbf1e670c6c77537c6dcabc",
                 "requestBody": {
-                    "description": "Transfer money from one user to another",
+                    "description": "Transfer money from one user to another. Note: Use decimal point (.) for monetary values, not comma.",
                     "required": true,
                     "content": {
                         "application/json": {
@@ -18,7 +18,7 @@
                                 "required": [
                                     "payer",
                                     "payee",
-                                    "amount"
+                                    "value"
                                 ],
                                 "properties": {
                                     "payer": {
@@ -29,8 +29,8 @@
                                         "description": "Payee user id",
                                         "type": "integer"
                                     },
-                                    "amount": {
-                                        "description": "Amount to transfer",
+                                    "value": {
+                                        "description": "Amount to transfer. Use decimal point (.) for cents, e.g. 100.55",
                                         "type": "number",
                                         "format": "float"
                                     }
@@ -42,10 +42,19 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Transfer money from one user to another"
+                        "description": "Transfer successful"
                     },
                     "400": {
-                        "description": "Bad Request"
+                        "description": "Bad Request - Validation errors or invalid parameters"
+                    },
+                    "401": {
+                        "description": "Unauthorized - The request was not authorized by the external service"
+                    },
+                    "403": {
+                        "description": "Forbidden - Insufficient balance or merchant trying to send money"
+                    },
+                    "404": {
+                        "description": "Not Found - User or wallet not found"
                     },
                     "500": {
                         "description": "Internal Server Error"
